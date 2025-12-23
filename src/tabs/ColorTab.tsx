@@ -14,14 +14,6 @@ const ColorTab: React.FC = () => {
       <h2>颜色选择器</h2>
       <div className="color-content">
         <ColorPicker initialColor={color} onChange={handleColorChange} />
-        <div className="color-info">
-          <h3>当前选择的颜色</h3>
-          <div
-            className="selected-color-preview"
-            style={{ backgroundColor: color }}
-          ></div>
-          <div className="color-code">{color}</div>
-        </div>
       </div>
     </div>
   );

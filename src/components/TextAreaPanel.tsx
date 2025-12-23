@@ -7,6 +7,7 @@ interface TextAreaPanelProps {
   error?: string;
   placeholderInput?: string;
   placeholderOutput?: string;
+  activeTab: string;
 }
 
 import { useEffect, useRef } from "react";
@@ -19,6 +20,7 @@ export default function TextAreaPanel({
   error,
   placeholderInput = "请输入内容",
   placeholderOutput = "结果输出",
+  activeTab
 }: TextAreaPanelProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const outputRef = useRef<HTMLTextAreaElement>(null);
@@ -35,15 +37,17 @@ export default function TextAreaPanel({
 
   return (
     <div className="tool-body">
-      <div className="textarea-wrapper">
-        <textarea
-          ref={inputRef}
-          value={input}
-          placeholder={placeholderInput}
-          onChange={(e) => onInputChange(e.target.value)}
-          style={{ minHeight: "300px", overflowY: "auto" }}
-        />
-      </div>
+      {!['keys'].includes(activeTab) && (
+        <div className="textarea-wrapper">
+          <textarea
+            ref={inputRef}
+            value={input}
+            placeholder={placeholderInput}
+            onChange={(e) => onInputChange(e.target.value)}
+            style={{ minHeight: "300px", overflowY: "auto" }}
+          />
+        </div>
+      )}
 
       <div className="textarea-wrapper">
         <textarea

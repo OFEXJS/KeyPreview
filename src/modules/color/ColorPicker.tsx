@@ -1,10 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
-import { hexToRgb, rgbToHex, hslToRgb, rgbToHsl } from "./colorConverter";
+import { 
+  hexToRgb, 
+  rgbToHex, 
+  hslToRgb, 
+  rgbToHsl,
+  rgbToHsb,
+  hsbToRgb,
+  rgbToCmyk,
+  formatHslString,
+  formatHsbString,
+  formatCmykString
+} from "./colorConverter";
+import { copyToClipboard } from "./colorUtils";
 import "./ColorPicker.css";
 
 interface ColorPickerProps {
-  initialColor?: string; // 初始颜色，默认为HEX格式
-  onChange?: (color: string) => void; // 颜色变化回调
+  initialColor?: string;
+  onChange?: (color: string) => void;
 }
 
 interface ColorRGB {
@@ -19,6 +31,19 @@ interface ColorHSL {
   l: number;
 }
 
+interface ColorHSB {
+  h: number;
+  s: number;
+  b: number;
+}
+
+interface ColorCMYK {
+  c: number;
+  m: number;
+  y: number;
+  k: number;
+}
+
 const ColorPicker: React.FC<ColorPickerProps> = ({
   initialColor = "#007bff",
   onChange,
@@ -26,7 +51,15 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   // 状态管理
   const [hex, setHex] = useState(initialColor);
   const [rgb, setRgb] = useState<ColorRGB>({ r: 0, g: 123, b: 255 });
+  const [rgba, setRgba] = useState<ColorRGB & { a: number }>({ r: 0, g: 123, b: 255, a: 1 });
   const [hsl, setHsl] = useState<ColorHSL>({ h: 210, s: 100, l: 50 });
+  const [hsb, setHsb] = useState<ColorHSB>({ h: 210, s: 100, b: 100 });
+  const [cmyk, setCmyk] = useState<ColorCMYK>({ c: 100, m: 52, y: 0, k: 0 });
+  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+
+  // 输入框状态管理 - 默认为空
+  const [hexInputValue, setHexInputValue] = useState("");
+  const [rgbaInputValue, setRgbaInputValue] = useState("");
 
   // 颜色选择区域状态
   const [selectorPosition, setSelectorPosition] = useState({ x: 50, y: 50 });
@@ -41,33 +74,50 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     const initialRgb = hexToRgb(initialColor);
     if (initialRgb) {
       setRgb(initialRgb);
+      setRgba({ ...initialRgb, a: 1 });
       const initialHsl = rgbToHsl(initialRgb);
       setHsl(initialHsl);
       setHue(initialHsl.h);
 
-      // 根据初始颜色设置选择器位置
+      // 根据初始颜色设置选择器位置 - 使用HSB模型
+      const initialHsb = rgbToHsb(initialRgb);
       setSelectorPosition({
-        x: initialHsl.s,
-        y: 100 - initialHsl.l,
+        x: initialHsb.s,
+        y: 100 - initialHsb.b,
       });
+
+      // 输入框默认为空，不初始化值
+      // setHexInputValue(initialColor);
+      // setRgbaInputValue(`rgba(${initialRgb.r}, ${initialRgb.g}, ${initialRgb.b}, 1)`);
     }
   }, [initialColor]);
 
-  // 核心颜色同步函数 - 确保所有颜色表示方式保持同步
+  // 核心颜色同步函数
   const syncColorState = (
     newHex: string,
     newRgb: ColorRGB,
-    newHsl: ColorHSL
+    newHsl: ColorHSL,
+    newAlpha?: number
   ) => {
     setHex(newHex);
     setRgb(newRgb);
+    setRgba({ ...newRgb, a: newAlpha !== undefined ? newAlpha : rgba.a });
     setHsl(newHsl);
+    const newHsb = rgbToHsb(newRgb);
+    setHsb(newHsb);
+    const newCmyk = rgbToCmyk(newRgb);
+    setCmyk(newCmyk);
     setHue(newHsl.h);
 
-    // 更新选择器位置
+    // 注释掉更新输入框值的代码，这样选择颜色盘时不会改变输入框内容
+    // setHexInputValue(newHex);
+    // const alphaValue = newAlpha !== undefined ? newAlpha : rgba.a;
+    // setRgbaInputValue(`rgba(${newRgb.r}, ${newRgb.g}, ${newRgb.b}, ${Math.round(alphaValue * 100) / 100})`);
+
+    // 更新选择器位置 - 使用HSB值计算，与颜色面板映射保持一致
     setSelectorPosition({
-      x: newHsl.s,
-      y: 100 - newHsl.l,
+      x: newHsb.s,
+      y: 100 - newHsb.b,
     });
 
     // 通知父组件颜色变化
@@ -76,7 +126,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     }
   };
 
-  // 处理颜色变化 - 作为所有颜色变更的统一入口
+  // 处理颜色变化
   const handleColorChange = (newHex: string) => {
     setHex(newHex);
     const newRgb = hexToRgb(newHex);
@@ -88,8 +138,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
 
   // 处理HEX输入
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // 验证HEX格式
+    let value = e.target.value;
+    
+    // 允许用户逐步输入，不实时更新验证
+    setHexInputValue(value);
+    
+    // 只有当输入完整且有效时才更新颜色
     if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value)) {
       handleColorChange(value);
     }
@@ -100,7 +154,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     const newRgb = { ...rgb, [color]: Math.max(0, Math.min(255, value)) };
     const newHex = rgbToHex(newRgb);
     const newHsl = rgbToHsl(newRgb);
-
     syncColorState(newHex, newRgb, newHsl);
   };
 
@@ -112,11 +165,42 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     const newHsl = { ...hsl, [color]: Math.max(0, Math.min(maxValue, value)) };
     const newRgb = hslToRgb(newHsl);
     const newHex = rgbToHex(newRgb);
-
     syncColorState(newHex, newRgb, newHsl);
   };
 
-  // 从坐标计算颜色并更新状态 - 提取为独立函数
+  // 处理RGBA透明度变化
+  const handleRgbaAlphaChange = (alpha: number) => {
+    const newAlpha = Math.max(0, Math.min(1, alpha));
+    // 使用syncColorState更新所有颜色状态，保持现有的RGB、HEX和HSL值不变
+    syncColorState(hex, rgb, hsl, newAlpha);
+  };
+
+  // 处理RGBA输入
+  const handleRgbaInputChange = (value: string) => {
+    // 允许用户逐步输入，实时更新显示值
+    setRgbaInputValue(value);
+    
+    // 只有当输入完整且有效时才更新颜色
+    const rgbaMatch = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/i.exec(value);
+    if (rgbaMatch) {
+      const r = parseInt(rgbaMatch[1]);
+      const g = parseInt(rgbaMatch[2]);
+      const b = parseInt(rgbaMatch[3]);
+      const a = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 1;
+      
+      // 验证RGB值范围
+      if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255 && a >= 0 && a <= 1) {
+        const newRgb = { r, g, b };
+        const newHsl = rgbToHsl(newRgb);
+        const newHex = rgbToHex(newRgb);
+
+        // 传递新的alpha值给syncColorState
+        syncColorState(newHex, newRgb, newHsl, a);
+      }
+    }
+  };
+
+  // 从坐标计算颜色并更新状态
   const updateColorFromCoordinates = (clientX: number, clientY: number) => {
     if (!colorPickerRef.current) return;
 
@@ -127,22 +211,21 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     const xPercent = (x / rect.width) * 100;
     const yPercent = (y / rect.height) * 100;
 
-    // 确保值在0-100之间
     const clampedX = Math.max(0, Math.min(100, xPercent));
     const clampedY = Math.max(0, Math.min(100, yPercent));
 
-    // 根据色相、饱和度和亮度计算新颜色
+    // 使用HSB模型映射颜色：
+    // x方向：饱和度 (0% 到 100%) - 从左到右增加
+    // y方向：亮度 (0% 到 100%) - 从下到上增加
     const saturation = clampedX;
-    const lightness = 100 - clampedY; // 反转Y轴
+    const brightness = 100 - clampedY;
 
-    const newHsl = { h: hue, s: saturation, l: lightness };
-    const newRgb = hslToRgb(newHsl);
+    const newHsb = { h: hue, s: saturation, b: brightness };
+    const newRgb = hsbToRgb(newHsb);
     const newHex = rgbToHex(newRgb);
+    const newHsl = rgbToHsl(newRgb);
 
-    // 先更新选择器位置以获得即时反馈
     setSelectorPosition({ x: clampedX, y: clampedY });
-
-    // 同步所有颜色状态
     syncColorState(newHex, newRgb, newHsl);
   };
 
@@ -172,14 +255,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         if (!colorPickerRef.current) return;
 
         const rect = colorPickerRef.current.getBoundingClientRect();
-        // 检查鼠标是否在颜色选择区域内
         if (
           e.clientX >= rect.left &&
           e.clientX <= rect.right &&
           e.clientY >= rect.top &&
           e.clientY <= rect.bottom
         ) {
-          // 直接使用原始事件的坐标，避免类型转换问题
           updateColorFromCoordinates(e.clientX, e.clientY);
         }
       };
@@ -200,251 +281,411 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
 
   // 处理色相滑块变化
   const handleHueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newHue = parseFloat(e.target.value);
+    const target = e.target as HTMLInputElement;
+    const newHue = parseInt(target.value);
     handleHslChange("h", newHue);
+  };
+
+  // 复制到剪贴板功能
+  const handleCopyToClipboard = async (text: string, format: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopiedFormat(format);
+      setTimeout(() => setCopiedFormat(null), 2000);
+    }
   };
 
   // 生成随机颜色
   const generateRandomColor = () => {
-    // 生成随机色相（0-360）
     const randomHue = Math.floor(Math.random() * 361);
-    // 生成随机饱和度（40-90%，避免过于灰色）
     const randomSaturation = 40 + Math.floor(Math.random() * 51);
-    // 生成随机亮度（40-60%，保持中等亮度）
-    const randomLightness = 40 + Math.floor(Math.random() * 21);
+    const randomBrightness = 40 + Math.floor(Math.random() * 51);
 
-    // 创建HSL对象
-    const randomHsl = { h: randomHue, s: randomSaturation, l: randomLightness };
-    // 转换为RGB
-    const randomRgb = hslToRgb(randomHsl);
-    // 转换为HEX
+    const randomHsb = { h: randomHue, s: randomSaturation, b: randomBrightness };
+    const randomRgb = hsbToRgb(randomHsb);
     const randomHex = rgbToHex(randomRgb);
+    const randomHsl = rgbToHsl(randomRgb);
 
-    // 先更新选择器位置和色相以获得即时反馈
     setHue(randomHue);
     setSelectorPosition({
       x: randomSaturation,
-      y: 100 - randomLightness,
+      y: 100 - randomBrightness,
     });
 
-    // 同步所有颜色状态
     syncColorState(randomHex, randomRgb, randomHsl);
   };
 
   return (
     <div className="color-picker">
-      <div className="color-preview">
-        <div
-          className="color-swatch"
-          style={{ backgroundColor: hex }}
-          onClick={generateRandomColor} // 点击颜色预览区域也可以生成随机颜色
-          title="点击生成随机颜色"
-        ></div>
-        <div className="color-input-group">
-          <label htmlFor="hexInput">HEX</label>
-          <input
-            id="hexInput"
-            type="text"
-            value={hex}
-            onChange={handleHexInputChange}
-            placeholder="#000000"
-          />
+      {/* 显眼的当前颜色显示区域 */}
+      <div className="current-color-display">
+        <div className="main-color-preview" style={{ backgroundColor: hex }}>
+          <div className="color-details">
+            <div className="color-value-primary">{hex}</div>
+            <div className="color-value-secondary">rgb({rgb.r}, {rgb.g}, {rgb.b})</div>
+          </div>
         </div>
       </div>
 
-      {/* 随机颜色按钮 */}
-      <button
-        onClick={generateRandomColor}
-        style={{
-          marginBottom: "15px",
-          padding: "8px 16px",
-          backgroundColor: "#007bff",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "14px",
-          fontWeight: "500",
-          transition: "background-color 0.2s",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "#0056b3")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "#007bff")
-        }
-      >
-        随机颜色
-      </button>
+      <div className="color-controls-section">
+        <div className="color-preview">
+          <div
+            className="color-swatch"
+            style={{ backgroundColor: hex }}
+            onClick={generateRandomColor}
+            title="点击生成随机颜色"
+          ></div>
+          <div className="dual-input-group">
+            <div className="color-input-group">
+              <label htmlFor="hexInput">HEX</label>
+              <input
+                id="hexInput"
+                type="text"
+                value={hexInputValue}
+                onChange={handleHexInputChange}
+                placeholder="#000000"
+              />
+            </div>
+            <div className="color-input-group">
+              <label htmlFor="rgbaInput">RGBA</label>
+              <input
+                id="rgbaInput"
+                type="text"
+                value={rgbaInputValue}
+                onChange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  handleRgbaInputChange(target.value);
+                }}
+                placeholder="rgba(255, 0, 0, 1)"
+              />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={rgba.a}
+                onChange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  handleRgbaAlphaChange(parseFloat(target.value));
+                }}
+                className="alpha-slider-input"
+                title="调整透明度"
+              />
+            </div>
+          </div>
+        </div>
 
-      {/* 颜色选择区域 */}
-      <div
-        className="color-picker-area"
-        ref={colorPickerRef}
-        onClick={handlePickerClick}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
-      >
-        <div className="color-picker-overlay"></div>
-        <div
-          className="color-picker-selector"
-          style={{
-            left: `${selectorPosition.x}%`,
-            top: `${selectorPosition.y}%`,
-          }}
-        ></div>
-      </div>
+        {/* 颜色选择主区域 */}
+        <div className="color-picker-main">
+          {/* 颜色选择区域 */}
+          <div
+            className="color-picker-area"
+            ref={colorPickerRef}
+            onClick={handlePickerClick}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
+          >
+            <div className="color-picker-overlay"></div>
+            <div
+              className="color-picker-selector"
+              style={{
+                left: `${selectorPosition.x}%`,
+                top: `${selectorPosition.y}%`,
+              }}
+            ></div>
+          </div>
 
-      {/* 色相滑块 */}
-      <div className="hue-slider-container">
-        <input
-          type="range"
-          min="0"
-          max="360"
-          value={hue}
-          onChange={handleHueChange}
-          className="hue-slider"
-        />
-      </div>
+          {/* 色相滑块 */}
+          <div className="hue-slider-container">
+            <div className="hue-value-indicator" style={{ 
+              backgroundColor: `hsl(${hue}, 100%, 50%)`,
+              borderColor: `hsl(${hue}, 100%, 40%)`
+            }}>
+              H: {hue}°
+            </div>
+            <div 
+              className="hue-color-preview" 
+              style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
+            />
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={hue}
+              onChange={handleHueChange}
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement;
+                const newHue = parseInt(target.value);
+                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
+                const preview = document.querySelector('.hue-color-preview') as HTMLElement;
+                if (indicator) {
+                  indicator.textContent = `H: ${newHue}°`;
+                  indicator.style.backgroundColor = `hsl(${newHue}, 100%, 50%)`;
+                  indicator.style.borderColor = `hsl(${newHue}, 100%, 40%)`;
+                }
+                if (preview) {
+                  preview.style.backgroundColor = `hsl(${newHue}, 100%, 50%)`;
+                }
+              }}
+              onMouseEnter={() => {
+                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
+                if (indicator) indicator.style.opacity = '1';
+              }}
+              onMouseLeave={() => {
+                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
+                if (indicator) indicator.style.opacity = '0';
+              }}
+              onFocus={() => {
+                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
+                if (indicator) indicator.style.opacity = '1';
+              }}
+              onBlur={() => {
+                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
+                if (indicator) indicator.style.opacity = '0';
+              }}
+              className="hue-slider"
+              title="拖动选择色相 (0°-360°)"
+            />
+            <div className="hue-scale-labels">
+              <span className="hue-label hue-label-top">360°</span>
+              <span className="hue-label hue-label-middle">180°</span>
+              <span className="hue-label hue-label-bottom">0°</span>
+            </div>
+          </div>
+        </div>
 
-      {/* RGB滑块控制 */}
-      <div className="color-sliders">
-        <h4>RGB</h4>
-        <div className="slider-group">
-          <label>R</label>
-          <input
-            type="range"
-            min="0"
-            max="255"
-            value={rgb.r}
-            onChange={(e) => handleRgbChange("r", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="255"
-            value={rgb.r}
-            onChange={(e) =>
-              handleRgbChange("r", parseInt(e.target.value) || 0)
-            }
-          />
+        {/* RGB滑块控制 */}
+        <div className="color-sliders">
+          <h4>RGB</h4>
+          <div className="slider-group">
+            <label>R</label>
+            <input
+              type="range"
+              min="0"
+              max="255"
+              value={rgb.r}
+              onChange={(e) => handleRgbChange("r", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="255"
+              value={rgb.r}
+              onChange={(e) =>
+                handleRgbChange("r", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="slider-group">
+            <label>G</label>
+            <input
+              type="range"
+              min="0"
+              max="255"
+              value={rgb.g}
+              onChange={(e) => handleRgbChange("g", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="255"
+              value={rgb.g}
+              onChange={(e) =>
+                handleRgbChange("g", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="slider-group">
+            <label>B</label>
+            <input
+              type="range"
+              min="0"
+              max="255"
+              value={rgb.b}
+              onChange={(e) => handleRgbChange("b", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="255"
+              value={rgb.b}
+              onChange={(e) =>
+                handleRgbChange("b", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
         </div>
-        <div className="slider-group">
-          <label>G</label>
-          <input
-            type="range"
-            min="0"
-            max="255"
-            value={rgb.g}
-            onChange={(e) => handleRgbChange("g", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="255"
-            value={rgb.g}
-            onChange={(e) =>
-              handleRgbChange("g", parseInt(e.target.value) || 0)
-            }
-          />
-        </div>
-        <div className="slider-group">
-          <label>B</label>
-          <input
-            type="range"
-            min="0"
-            max="255"
-            value={rgb.b}
-            onChange={(e) => handleRgbChange("b", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="255"
-            value={rgb.b}
-            onChange={(e) =>
-              handleRgbChange("b", parseInt(e.target.value) || 0)
-            }
-          />
-        </div>
-      </div>
 
-      {/* HSL滑块控制 - 新增 */}
-      <div className="color-sliders">
-        <h4>HSL</h4>
-        <div className="slider-group">
-          <label>H</label>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            value={hsl.h}
-            onChange={(e) => handleHslChange("h", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="360"
-            value={hsl.h}
-            onChange={(e) =>
-              handleHslChange("h", parseInt(e.target.value) || 0)
-            }
-          />
+        {/* HSL滑块控制 */}
+        <div className="color-sliders">
+          <h4>HSL</h4>
+          <div className="slider-group">
+            <label>H</label>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={hsl.h}
+              onChange={(e) => handleHslChange("h", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="360"
+              value={hsl.h}
+              onChange={(e) =>
+                handleHslChange("h", parseInt(e.target.value) || 0)
+              }
+            />
+          </div>
+          <div className="slider-group">
+            <label>S</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={hsl.s}
+              onChange={(e) => handleHslChange("s", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={hsl.s}
+              onChange={(e) =>
+                handleHslChange("s", parseInt(e.target.value) || 0)
+              }
+            />
+            <span>%</span>
+          </div>
+          <div className="slider-group">
+            <label>L</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={hsl.l}
+              onChange={(e) => handleHslChange("l", parseInt(e.target.value))}
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={hsl.l}
+              onChange={(e) =>
+                handleHslChange("l", parseInt(e.target.value) || 0)
+              }
+            />
+            <span>%</span>
+          </div>
         </div>
-        <div className="slider-group">
-          <label>S</label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={hsl.s}
-            onChange={(e) => handleHslChange("s", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="100"
-            value={hsl.s}
-            onChange={(e) =>
-              handleHslChange("s", parseInt(e.target.value) || 0)
-            }
-          />
-          <span>%</span>
-        </div>
-        <div className="slider-group">
-          <label>L</label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={hsl.l}
-            onChange={(e) => handleHslChange("l", parseInt(e.target.value))}
-          />
-          <input
-            type="number"
-            min="0"
-            max="100"
-            value={hsl.l}
-            onChange={(e) =>
-              handleHslChange("l", parseInt(e.target.value) || 0)
-            }
-          />
-          <span>%</span>
-        </div>
-      </div>
 
-      <div className="color-formats">
-        <div className="format-item">
-          <strong>RGB:</strong>
-          {`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
+        {/* 紧凑的颜色格式输出 */}
+        <div className="color-formats">
+          <h4>颜色格式</h4>
+          
+          <div className="formats-grid">
+            {/* HEX格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>HEX</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(hex, 'hex')}
+                  title="复制HEX值"
+                >
+                  {copiedFormat === 'hex' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{hex}</div>
+            </div>
+
+            {/* RGB格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>RGB</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`, 'rgb')}
+                  title="复制RGB值"
+                >
+                  {copiedFormat === 'rgb' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}</div>
+            </div>
+
+            {/* RGBA格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>RGBA</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a.toFixed(2)})`, 'rgba')}
+                  title="复制RGBA值"
+                >
+                  {copiedFormat === 'rgba' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a.toFixed(2)})`}</div>
+            </div>
+
+            {/* HSL格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>HSL</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(formatHslString(hsl), 'hsl')}
+                  title="复制HSL值"
+                >
+                  {copiedFormat === 'hsl' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{formatHslString(hsl)}</div>
+            </div>
+
+            {/* HSB格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>HSB</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(formatHsbString(hsb), 'hsb')}
+                  title="复制HSB值"
+                >
+                  {copiedFormat === 'hsb' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{formatHsbString(hsb)}</div>
+            </div>
+
+            {/* CMYK格式 */}
+            <div className="format-item compact">
+              <div className="format-header">
+                <strong>CMYK</strong>
+                <button
+                  className="copy-btn compact"
+                  onClick={() => handleCopyToClipboard(formatCmykString(cmyk), 'cmyk')}
+                  title="复制CMYK值"
+                >
+                  {copiedFormat === 'cmyk' ? '✓' : '📋'}
+                </button>
+              </div>
+              <div className="format-value">{formatCmykString(cmyk)}</div>
+            </div>
+          </div>
         </div>
-        <div className="format-item">
-          <strong>HSL:</strong>
-          {`hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`}
-        </div>
+
+        {/* 复制成功提示 */}
+        {copiedFormat && (
+          <div className="copy-notification">
+            已复制 {copiedFormat.toUpperCase()} 值到剪贴板
+          </div>
+        )}
       </div>
     </div>
   );

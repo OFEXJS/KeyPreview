@@ -517,25 +517,24 @@ function App() {
       )}
 
       {/* 输入输出面板 */}
-      <TextAreaPanel
-        input={inputText}
-        output={outputText}
-        onInputChange={handleInputChange}
-        error={error}
-        placeholderInput={
-          activeTab === "encrypt"
-            ? `请输入要${isEncodeMode ? "加密" : "解密"}的内容`
-            : activeTab === "format"
-              ? "请输入要格式化的代码"
-              : activeTab === "jwt"
-                ? "请输入JWT令牌或payload"
-                : activeTab === "regex"
-                  ? "请输入要测试或替换的文本"
-                  : activeTab === "color"
-                    ? "颜色转换功能区域"
-                    : "非对称密钥对功能区域"
-        }
-      />
+      {!["color"].includes(activeTab) && (
+        <TextAreaPanel
+          input={inputText}
+          output={outputText}
+          onInputChange={handleInputChange}
+          error={error}
+          activeTab={activeTab}
+          placeholderInput={
+            activeTab === "encrypt"
+              ? `请输入要${isEncodeMode ? "加密" : "解密"}的内容`
+              : activeTab === "format"
+                ? "请输入要格式化的代码"
+                : activeTab === "jwt"
+                  ? "请输入JWT令牌或payload"
+                  : "请输入要测试或替换的文本"
+          }
+        />
+      )}
 
       {/* 错误和成功信息 */}
       {error && <div className="error">{error}</div>}

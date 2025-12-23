@@ -121,6 +121,7 @@
   resize: none;
 }
 
+.keys-output-container textarea,
 .keys-input-container textarea,
 .option-group textarea,
 .option-group select,
@@ -133,6 +134,7 @@
   box-sizing: border-box;
 }
 
+.keys-output-container textarea,
 .keys-input-container textarea:focus,
 .option-group select:focus,
 .option-group input:focus,
