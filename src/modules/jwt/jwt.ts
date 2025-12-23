@@ -216,7 +216,7 @@ export const generateAsymmetricSignature = async (
     try {
       const der = pemToDer(privateKey);
       key = await crypto.subtle.importKey(
-        algorithm.startsWith("RS") ? "pkcs8" : "ec",
+        algorithm.startsWith("RS") ? "pkcs8" : "raw",
         der,
         cryptoAlgorithm,
         false,
@@ -284,7 +284,7 @@ export const verifyHmacSignature = async (
     false,
     ["verify"]
   );
-  const signatureBytes = base64UrlDecodeBinary(signature);
+  const signatureBytes = base64UrlDecodeBinary(signature) as BufferSource;
   const result = await crypto.subtle.verify(
     cryptoAlgorithm,
     key,
@@ -317,7 +317,7 @@ export const verifyAsymmetricSignature = async (
     try {
       const der = pemToDer(publicKey);
       key = await crypto.subtle.importKey(
-        algorithm.startsWith("RS") ? "spki" : "ec",
+        algorithm.startsWith("RS") ? "spki" : "raw",
         der,
         cryptoAlgorithm,
         false,
@@ -346,7 +346,7 @@ export const verifyAsymmetricSignature = async (
     throw new Error("公钥必须是有效的PEM格式或JWK格式");
   }
 
-  const signatureBytes = base64UrlDecodeBinary(signature);
+  const signatureBytes = base64UrlDecodeBinary(signature) as BufferSource;
   const result = await crypto.subtle.verify(
     cryptoAlgorithm,
     key,

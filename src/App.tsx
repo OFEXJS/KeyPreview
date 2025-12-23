@@ -122,7 +122,7 @@ function App() {
   };
 
   // 处理格式化操作
-  const handleFormat = () => {
+  const handleFormat = async () => {
     try {
       setError("");
       setSuccess("");
@@ -133,10 +133,10 @@ function App() {
           result = formatJSON(inputText);
           break;
         case "html":
-          result = formatHTML(inputText);
+          result = await formatHTML(inputText);
           break;
         case "css":
-          result = formatCSS(inputText);
+          result = await formatCSS(inputText);
           break;
         default:
           throw new Error("不支持的格式化类型");
