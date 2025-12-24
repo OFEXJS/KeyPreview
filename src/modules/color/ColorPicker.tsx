@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import { 
-  hexToRgb, 
-  rgbToHex, 
-  hslToRgb, 
+import {
+  hexToRgb,
+  rgbToHex,
+  hslToRgb,
   rgbToHsl,
   rgbToHsb,
   hsbToRgb,
   rgbToCmyk,
   formatHslString,
   formatHsbString,
-  formatCmykString
+  formatCmykString,
 } from "./colorConverter";
 import { copyToClipboard } from "./colorUtils";
 import "./ColorPicker.css";
@@ -51,7 +51,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   // 状态管理
   const [hex, setHex] = useState(initialColor);
   const [rgb, setRgb] = useState<ColorRGB>({ r: 0, g: 123, b: 255 });
-  const [rgba, setRgba] = useState<ColorRGB & { a: number }>({ r: 0, g: 123, b: 255, a: 1 });
+  const [rgba, setRgba] = useState<ColorRGB & { a: number }>({
+    r: 0,
+    g: 123,
+    b: 255,
+    a: 1,
+  });
   const [hsl, setHsl] = useState<ColorHSL>({ h: 210, s: 100, l: 50 });
   const [hsb, setHsb] = useState<ColorHSB>({ h: 210, s: 100, b: 100 });
   const [cmyk, setCmyk] = useState<ColorCMYK>({ c: 100, m: 52, y: 0, k: 0 });
@@ -139,10 +144,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   // 处理HEX输入
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
+
     // 允许用户逐步输入，不实时更新验证
     setHexInputValue(value);
-    
+
     // 只有当输入完整且有效时才更新颜色
     if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value)) {
       handleColorChange(value);
@@ -179,17 +184,27 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const handleRgbaInputChange = (value: string) => {
     // 允许用户逐步输入，实时更新显示值
     setRgbaInputValue(value);
-    
+
     // 只有当输入完整且有效时才更新颜色
-    const rgbaMatch = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/i.exec(value);
+    const rgbaMatch =
+      /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/i.exec(value);
     if (rgbaMatch) {
       const r = parseInt(rgbaMatch[1]);
       const g = parseInt(rgbaMatch[2]);
       const b = parseInt(rgbaMatch[3]);
       const a = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 1;
-      
+
       // 验证RGB值范围
-      if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255 && a >= 0 && a <= 1) {
+      if (
+        r >= 0 &&
+        r <= 255 &&
+        g >= 0 &&
+        g <= 255 &&
+        b >= 0 &&
+        b <= 255 &&
+        a >= 0 &&
+        a <= 1
+      ) {
         const newRgb = { r, g, b };
         const newHsl = rgbToHsl(newRgb);
         const newHex = rgbToHex(newRgb);
@@ -301,7 +316,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     const randomSaturation = 40 + Math.floor(Math.random() * 51);
     const randomBrightness = 40 + Math.floor(Math.random() * 51);
 
-    const randomHsb = { h: randomHue, s: randomSaturation, b: randomBrightness };
+    const randomHsb = {
+      h: randomHue,
+      s: randomSaturation,
+      b: randomBrightness,
+    };
     const randomRgb = hsbToRgb(randomHsb);
     const randomHex = rgbToHex(randomRgb);
     const randomHsl = rgbToHsl(randomRgb);
@@ -319,10 +338,22 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
     <div className="color-picker">
       {/* 显眼的当前颜色显示区域 */}
       <div className="current-color-display">
-        <div className="main-color-preview" style={{ backgroundColor: hex }}>
+        <div
+          className="main-color-preview alpha"
+          style={{
+            backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a})`,
+          }}
+        >
           <div className="color-details">
             <div className="color-value-primary">{hex}</div>
-            <div className="color-value-secondary">rgb({rgb.r}, {rgb.g}, {rgb.b})</div>
+            <div className="color-value-secondary">
+              rgba({rgb.r}, {rgb.g}, {rgb.b}, {rgba.a})
+            </div>
+            {rgba.a < 1 && (
+              <div className="color-value-secondary">
+                透明度: {Math.round(rgba.a * 100)}%
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -330,8 +361,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       <div className="color-controls-section">
         <div className="color-preview">
           <div
-            className="color-swatch"
-            style={{ backgroundColor: hex }}
+            className="color-swatch alpha"
+            style={{
+              backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a})`,
+            }}
             onClick={generateRandomColor}
             title="点击生成随机颜色"
           ></div>
@@ -358,6 +391,37 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 }}
                 placeholder="rgba(255, 0, 0, 1)"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* 颜色选择主区域 */}
+        <div className="color-picker-main">
+          {/* 颜色选择区域 */}
+          <div style={{ flex: 1 }}>
+            <div
+              className="color-picker-area"
+              ref={colorPickerRef}
+              onClick={handlePickerClick}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
+            >
+              <div className="color-picker-overlay"></div>
+              <div
+                className="color-picker-selector"
+                style={{
+                  left: `${selectorPosition.x}%`,
+                  top: `${selectorPosition.y}%`,
+                }}
+              ></div>
+            </div>
+
+            {/* 透明度滑块 */}
+            <div className="alpha-slider-container">
+              <label className="alpha-slider-label">透明度</label>
               <input
                 type="range"
                 min="0"
@@ -371,43 +435,25 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 className="alpha-slider-input"
                 title="调整透明度"
               />
+              <span className="alpha-value-display">
+                {Math.round(rgba.a * 100)}%
+              </span>
             </div>
-          </div>
-        </div>
-
-        {/* 颜色选择主区域 */}
-        <div className="color-picker-main">
-          {/* 颜色选择区域 */}
-          <div
-            className="color-picker-area"
-            ref={colorPickerRef}
-            onClick={handlePickerClick}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
-          >
-            <div className="color-picker-overlay"></div>
-            <div
-              className="color-picker-selector"
-              style={{
-                left: `${selectorPosition.x}%`,
-                top: `${selectorPosition.y}%`,
-              }}
-            ></div>
           </div>
 
           {/* 色相滑块 */}
           <div className="hue-slider-container">
-            <div className="hue-value-indicator" style={{ 
-              backgroundColor: `hsl(${hue}, 100%, 50%)`,
-              borderColor: `hsl(${hue}, 100%, 40%)`
-            }}>
+            <div
+              className="hue-value-indicator"
+              style={{
+                backgroundColor: `hsl(${hue}, 100%, 50%)`,
+                borderColor: `hsl(${hue}, 100%, 40%)`,
+              }}
+            >
               H: {hue}°
             </div>
-            <div 
-              className="hue-color-preview" 
+            <div
+              className="hue-color-preview"
               style={{ backgroundColor: `hsl(${hue}, 100%, 50%)` }}
             />
             <input
@@ -419,8 +465,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               onInput={(e) => {
                 const target = e.target as HTMLInputElement;
                 const newHue = parseInt(target.value);
-                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
-                const preview = document.querySelector('.hue-color-preview') as HTMLElement;
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                const preview = document.querySelector(
+                  ".hue-color-preview"
+                ) as HTMLElement;
                 if (indicator) {
                   indicator.textContent = `H: ${newHue}°`;
                   indicator.style.backgroundColor = `hsl(${newHue}, 100%, 50%)`;
@@ -431,20 +481,34 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 }
               }}
               onMouseEnter={() => {
-                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
-                if (indicator) indicator.style.opacity = '1';
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                if (indicator) indicator.style.opacity = "1";
               }}
               onMouseLeave={() => {
-                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
-                if (indicator) indicator.style.opacity = '0';
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                if (indicator) indicator.style.opacity = "0";
               }}
               onFocus={() => {
-                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
-                if (indicator) indicator.style.opacity = '1';
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                if (indicator) indicator.style.opacity = "1";
               }}
               onBlur={() => {
-                const indicator = document.querySelector('.hue-value-indicator') as HTMLElement;
-                if (indicator) indicator.style.opacity = '0';
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                if (indicator) indicator.style.opacity = "0";
+              }}
+              onMouseDown={() => {
+                const indicator = document.querySelector(
+                  ".hue-value-indicator"
+                ) as HTMLElement;
+                if (indicator) indicator.style.opacity = "1";
               }}
               className="hue-slider"
               title="拖动选择色相 (0°-360°)"
@@ -586,7 +650,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
         {/* 紧凑的颜色格式输出 */}
         <div className="color-formats">
           <h4>颜色格式</h4>
-          
+
           <div className="formats-grid">
             {/* HEX格式 */}
             <div className="format-item compact">
@@ -594,10 +658,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>HEX</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(hex, 'hex')}
+                  onClick={() => handleCopyToClipboard(hex, "hex")}
                   title="复制HEX值"
                 >
-                  {copiedFormat === 'hex' ? '✓' : '📋'}
+                  {copiedFormat === "hex" ? "✓" : "📋"}
                 </button>
               </div>
               <div className="format-value">{hex}</div>
@@ -609,10 +673,15 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>RGB</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`, 'rgb')}
+                  onClick={() =>
+                    handleCopyToClipboard(
+                      `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                      "rgb"
+                    )
+                  }
                   title="复制RGB值"
                 >
-                  {copiedFormat === 'rgb' ? '✓' : '📋'}
+                  {copiedFormat === "rgb" ? "✓" : "📋"}
                 </button>
               </div>
               <div className="format-value">{`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}</div>
@@ -624,13 +693,18 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>RGBA</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a.toFixed(2)})`, 'rgba')}
+                  onClick={() =>
+                    handleCopyToClipboard(
+                      `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a})`,
+                      "rgba"
+                    )
+                  }
                   title="复制RGBA值"
                 >
-                  {copiedFormat === 'rgba' ? '✓' : '📋'}
+                  {copiedFormat === "rgba" ? "✓" : "📋"}
                 </button>
               </div>
-              <div className="format-value">{`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a.toFixed(2)})`}</div>
+              <div className="format-value">{`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgba.a})`}</div>
             </div>
 
             {/* HSL格式 */}
@@ -639,10 +713,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>HSL</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(formatHslString(hsl), 'hsl')}
+                  onClick={() =>
+                    handleCopyToClipboard(formatHslString(hsl), "hsl")
+                  }
                   title="复制HSL值"
                 >
-                  {copiedFormat === 'hsl' ? '✓' : '📋'}
+                  {copiedFormat === "hsl" ? "✓" : "📋"}
                 </button>
               </div>
               <div className="format-value">{formatHslString(hsl)}</div>
@@ -654,10 +730,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>HSB</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(formatHsbString(hsb), 'hsb')}
+                  onClick={() =>
+                    handleCopyToClipboard(formatHsbString(hsb), "hsb")
+                  }
                   title="复制HSB值"
                 >
-                  {copiedFormat === 'hsb' ? '✓' : '📋'}
+                  {copiedFormat === "hsb" ? "✓" : "📋"}
                 </button>
               </div>
               <div className="format-value">{formatHsbString(hsb)}</div>
@@ -669,10 +747,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 <strong>CMYK</strong>
                 <button
                   className="copy-btn compact"
-                  onClick={() => handleCopyToClipboard(formatCmykString(cmyk), 'cmyk')}
+                  onClick={() =>
+                    handleCopyToClipboard(formatCmykString(cmyk), "cmyk")
+                  }
                   title="复制CMYK值"
                 >
-                  {copiedFormat === 'cmyk' ? '✓' : '📋'}
+                  {copiedFormat === "cmyk" ? "✓" : "📋"}
                 </button>
               </div>
               <div className="format-value">{formatCmykString(cmyk)}</div>
