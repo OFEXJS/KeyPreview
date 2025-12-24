@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   rgbToHex,
   hexToRgb,
@@ -8,7 +8,6 @@ import {
   hsbToRgb,
   rgbToCmyk,
   cmykToRgb,
-  parseColorString,
   formatRgbaString,
   type RGB,
   type RGBA,

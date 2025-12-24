@@ -1,9 +1,9 @@
 // 主要组件导出
-export { default as ColorPicker } from './ColorPicker';
-export { default as ColorPanel } from './ColorPanel';
-export { default as ColorConverter } from './ColorConverter';
-export { default as ColorInput } from './ColorInput';
-export { default as ColorModuleDemo } from './ColorModuleDemo';
+export { default as ColorPicker } from "./ColorPicker";
+export { default as ColorPanel } from "./ColorPanel";
+export { default as ColorConverter } from "./ColorConverter.tsx";
+export { default as ColorInput } from "./ColorInput";
+export { default as ColorModuleDemo } from "./ColorModuleDemo";
 
 // 工具函数导出
 export {
@@ -27,8 +27,8 @@ export {
   type RGBA,
   type HSL,
   type HSB,
-  type CMYK
-} from './colorConverter';
+  type CMYK,
+} from "./colorConverter";
 
 export {
   presetColors,
@@ -40,12 +40,7 @@ export {
   adjustBrightness,
   calculateColorDifference,
   getColorName,
-  isValidColor
-} from './colorUtils';
+  isValidColor,
+} from "./colorUtils";
 
-// 样式文件
-export './ColorPicker.css';
-export './ColorPanel.css';
-export './ColorConverter.css';
-export './ColorInput.css';
-export './ColorModuleDemo.css';
+// 样式文件在各自的组件中导入，不需要在此导出

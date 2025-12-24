@@ -49,7 +49,7 @@ const ColorConverter: React.FC<ColorConverterProps> = ({
     setInputValue(e.target.value);
   };
 
-  const handleFormatChange = (format: keyof ColorFormats, value: string) => {
+  const handleFormatChange = (_format: keyof ColorFormats, value: string) => {
     setInputValue(value);
   };
 
