@@ -555,10 +555,69 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
         <div className="color-stops-list">
           {config.colorStops
             .sort((a: ColorStop, b: ColorStop) => a.position - b.position)
-            .map((stop: ColorStop) => {
+            .map((stop: ColorStop, index: number) => {
             const isEndpoint = stop.position === 0 || stop.position === 100;
             return (
-              <div key={stop.id} className={`compact-stop-item ${isEndpoint ? 'endpoint' : ''}`}>
+              <div 
+                key={stop.id} 
+                className={`compact-stop-item ${isEndpoint ? 'endpoint' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const draggedStopId = e.dataTransfer.getData('text/plain');
+                  const draggedIndex = parseInt(e.dataTransfer.getData('drag-index') || '0');
+                  
+                  e.currentTarget.classList.remove('drag-over');
+                  
+                  if (draggedStopId === stop.id) return;
+                  
+                  const sortedStops = [...config.colorStops].sort((a: ColorStop, b: ColorStop) => a.position - b.position);
+                  const draggedStop = sortedStops[draggedIndex];
+                  
+                  if (!draggedStop) return;
+                  
+                  const colors = sortedStops.map(s => s.color);
+                  const draggedColor = colors[draggedIndex];
+                  colors.splice(draggedIndex, 1);
+                  const insertIndex = colors.findIndex((_, i) => sortedStops[i].position >= stop.position);
+                  const finalIndex = insertIndex === -1 ? colors.length : insertIndex;
+                  colors.splice(finalIndex, 0, draggedColor);
+                  
+                  const finalSortedStops = sortedStops.map((s, i) => ({
+                    ...s,
+                    color: colors[i]
+                  }));
+                  
+                  onChange({ ...config, colorStops: finalSortedStops });
+                }}
+              >
+                <div 
+                  className="drag-handle"
+                  title="拖拽交换位置"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', stop.id);
+                    e.dataTransfer.setData('drag-index', String(index));
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <circle cx="8" cy="6" r="2" />
+                    <circle cx="16" cy="6" r="2" />
+                    <circle cx="8" cy="12" r="2" />
+                    <circle cx="16" cy="12" r="2" />
+                    <circle cx="8" cy="18" r="2" />
+                    <circle cx="16" cy="18" r="2" />
+                  </svg>
+                </div>
+                
                 <div 
                   className="color-preview-dot"
                   style={{ backgroundColor: stop.color }}
