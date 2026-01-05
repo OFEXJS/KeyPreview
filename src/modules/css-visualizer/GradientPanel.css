@@ -500,9 +500,32 @@
 
 .compact-stop-item.drag-over {
   border-color: #667eea;
-  border-style: dashed;
-  background: rgba(102, 126, 234, 0.08);
+  border-style: solid;
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15) 0%, rgba(102, 126, 234, 0.05) 50%, rgba(102, 126, 234, 0.15) 100%);
   transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.compact-stop-item.drag-over::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-radius: 0 2px 2px 0;
+}
+
+.compact-stop-item.drag-over .drag-handle {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.compact-stop-item.drag-over .color-info {
+  color: #667eea;
+  font-weight: 500;
 }
 
 .drag-handle {
@@ -515,16 +538,31 @@
   cursor: grab;
   border-radius: 6px;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
 .drag-handle:hover {
   color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.12);
 }
 
-.drag-handle:active {
+.drag-handle:active,
+.drag-handle.dragging {
   cursor: grabbing;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
+}
+
+.drag-handle.dragging {
+  opacity: 0.7;
+}
+
+.compact-stop-item:has(.drag-handle.dragging) {
+  background: rgba(102, 126, 234, 0.05);
+  border-style: dashed;
+  border-color: #667eea;
 }
 
 .color-preview-dot {

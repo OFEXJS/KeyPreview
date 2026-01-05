@@ -565,8 +565,16 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
                   e.preventDefault();
                   e.stopPropagation();
                 }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.currentTarget.classList.add('drag-over');
+                }}
                 onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('drag-over');
+                  e.stopPropagation();
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    e.currentTarget.classList.remove('drag-over');
+                  }
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -606,6 +614,11 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
                     e.dataTransfer.setData('text/plain', stop.id);
                     e.dataTransfer.setData('drag-index', String(index));
                     e.dataTransfer.effectAllowed = 'move';
+                    e.currentTarget.classList.add('dragging');
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove('dragging');
+                    document.querySelectorAll('.compact-stop-item').forEach(el => el.classList.remove('drag-over'));
                   }}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
