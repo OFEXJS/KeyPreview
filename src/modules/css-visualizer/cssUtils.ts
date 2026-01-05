@@ -6,7 +6,37 @@ export interface ColorStop {
   id: string;
   color: string;
   position: number;
+  alpha?: number;
 }
+
+// 将hex颜色转换为rgba
+export const hexToRgba = (hex: string, alpha: number = 1): string => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) {
+    return hex.includes('rgba') ? hex : `rgba(0, 0, 0, ${alpha})`;
+  }
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// 根据颜色值生成带透明度的颜色
+export const applyAlphaToColor = (color: string, alpha: number): string => {
+  if (color.startsWith('#')) {
+    return hexToRgba(color, alpha);
+  }
+  if (color.startsWith('rgba')) {
+    return color.replace(/rgba?\(([^)]+)\)/, (_, args) => {
+      const parts = args.split(',').map((p: string) => p.trim());
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    });
+  }
+  if (color.startsWith('rgb')) {
+    return hexToRgba(color, alpha);
+  }
+  return color;
+};
 
 // 渐变配置接口
 interface LinearGradientConfig {
@@ -52,7 +82,12 @@ export const generateGradientCSS = (config: GradientConfig): string => {
   
   // 生成颜色停止点字符串，保持数组顺序（拖拽排序的关键）
   const colorStopsStr = colorStops
-    .map(stop => `${stop.color} ${stop.position}%`)
+    .map(stop => {
+      const color = stop.alpha !== undefined 
+        ? applyAlphaToColor(stop.color, stop.alpha) 
+        : stop.color;
+      return `${color} ${stop.position}%`;
+    })
     .join(", ");
   
   switch (type) {

@@ -49,6 +49,7 @@
 
 .color-stops-section {
   margin-top: 30px;
+  margin-bottom: 20px;
 }
 
 .color-stops-section h3 {
@@ -389,4 +390,91 @@
 
 .gradient-controls {
   margin-top: 20px;
+}
+
+.color-stops-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 15px;
+}
+
+.color-stops-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.color-stops-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.color-stops-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.color-stops-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.alpha-stop-input {
+  margin-bottom: 15px;
+}
+
+.alpha-stop-input label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alpha-stop-input .alpha-slider {
+  width: 100%;
+  margin-right: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1));
+  border: 1px solid #e2e8f0;
+}
+
+.alpha-stop-input .alpha-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  border: 2px solid white;
+}
+
+.alpha-stop-input .alpha-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.alpha-stop-input .alpha-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.alpha-stop-input .alpha-slider:hover::-moz-range-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }

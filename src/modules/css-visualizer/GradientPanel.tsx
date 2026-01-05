@@ -174,7 +174,7 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
   // 更新颜色停止点
   const handleColorStopChange = (
     id: string,
-    property: "color" | "position",
+    property: "color" | "position" | "alpha",
     value: string | number
   ) => {
     // 如果是更新位置，需要添加位置限制逻辑
@@ -205,6 +205,12 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
         stop.id === id ? { ...stop, [property]: clampedPosition } : stop
       );
 
+      onChange({ ...config, colorStops: newColorStops });
+    } else if (property === "alpha") {
+      const newAlpha = Math.max(0, Math.min(1, Number(value)));
+      const newColorStops = config.colorStops.map(stop =>
+        stop.id === id ? { ...stop, alpha: newAlpha } : stop
+      );
       onChange({ ...config, colorStops: newColorStops });
     } else {
       // 如果是更新颜色，确保值是字符串
@@ -389,35 +395,6 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
         </div>
       </div>
 
-      {/* 渐变预设 */}
-      <div className="control-group">
-        <label>渐变预设：</label>
-        <div className="preset-section">
-          {gradientPresets.map((preset, index) => (
-            <div
-              key={index}
-              className="preset-item"
-              onClick={() => handlePresetChange(index)}
-            >
-              <div
-                className="preset-preview"
-                style={{ background: generateGradientCSS({ ...config, ...preset }) }}
-              ></div>
-              <div className="preset-name">{preset.name}</div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="gradient-controls">
-          <button 
-            className="random-gradient-button"
-            onClick={handleRandomGradient}
-          >
-            🎲 随机生成渐变色
-          </button>
-        </div>
-      </div>
-
       {/* 线性渐变配置 */}
       {config.type === "linear" && (
         <div className="control-group">
@@ -553,131 +530,173 @@ const GradientPanel: React.FC<GradientPanelProps> = ({ config, onChange }) => {
       {/* 颜色停止点配置 */}
       <div className="color-stops-section">
         <h3>颜色停止点</h3>
-        {config.colorStops.map((stop: ColorStop) => {
-          // 基于位置值判断端点（0%和100%）
-          const isEndpoint = stop.position === 0 || stop.position === 100;
-          return (
-            <div
-              key={stop.id}
-              className={`color-stop ${isEndpoint ? 'color-stop-endpoint' : ''}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                // 拖拽经过时添加高亮效果
-                const target = e.currentTarget as HTMLElement;
-                target.classList.add('drag-over');
-              }}
-              onDragLeave={(e) => {
-                // 离开时移除高亮效果
-                const target = e.currentTarget as HTMLElement;
-                target.classList.remove('drag-over');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const draggedStopId = e.dataTransfer.getData('text/plain');
+        <div className="color-stops-container">
+          {config.colorStops.map((stop: ColorStop) => {
+            // 基于位置值判断端点（0%和100%）
+            const isEndpoint = stop.position === 0 || stop.position === 100;
+            return (
+              <div
+                key={stop.id}
+                className={`color-stop ${isEndpoint ? 'color-stop-endpoint' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  // 拖拽经过时添加高亮效果
+                  const target = e.currentTarget as HTMLElement;
+                  target.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  // 离开时移除高亮效果
+                  const target = e.currentTarget as HTMLElement;
+                  target.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const draggedStopId = e.dataTransfer.getData('text/plain');
 
-                // 移除所有高亮效果
-                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                  // 移除所有高亮效果
+                  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 
-                // 找到被拖拽的停止点和目标停止点的索引
-                const draggedStopIndex = config.colorStops.findIndex((s: ColorStop) => s.id === draggedStopId);
-                const targetStopIndex = config.colorStops.findIndex((s: ColorStop) => s.id === stop.id);
+                  // 找到被拖拽的停止点和目标停止点的索引
+                  const draggedStopIndex = config.colorStops.findIndex((s: ColorStop) => s.id === draggedStopId);
+                  const targetStopIndex = config.colorStops.findIndex((s: ColorStop) => s.id === stop.id);
 
-                // 如果起始位置和目标位置相同，不进行任何操作
-                if (draggedStopIndex === targetStopIndex) return;
+                  // 如果起始位置和目标位置相同，不进行任何操作
+                  if (draggedStopIndex === targetStopIndex) return;
 
-                // 创建新的停止点数组并执行拖拽操作
-                const newColorStops = [...config.colorStops];
-                const [draggedStop] = newColorStops.splice(draggedStopIndex, 1);
-                newColorStops.splice(targetStopIndex, 0, draggedStop);
+                  // 创建新的停止点数组并执行拖拽操作
+                  const newColorStops = [...config.colorStops];
+                  const [draggedStop] = newColorStops.splice(draggedStopIndex, 1);
+                  newColorStops.splice(targetStopIndex, 0, draggedStop);
 
-                // 优化：保持位置不变，只按新顺序交换颜色值
-                // 1. 先按位置排序原停止点，确定位置顺序
-                const sortedByPosition = [...config.colorStops].sort((a, b) => a.position - b.position);
-                
-                // 2. 获取拖拽后的新顺序的颜色列表
-                const newOrderColors = newColorStops.map(stop => stop.color);
-                
-                // 3. 为每个按位置排序的停止点应用新顺序的颜色
-                const finalSortedStops = sortedByPosition.map((stop, index) => {
-                  return {
-                    ...stop,
-                    // 按新顺序应用颜色，保持原位置不变
-                    color: newOrderColors[index]
-                  };
-                });
+                  // 优化：保持位置不变，只按新顺序交换颜色值
+                  // 1. 先按位置排序原停止点，确定位置顺序
+                  const sortedByPosition = [...config.colorStops].sort((a, b) => a.position - b.position);
+                  
+                  // 2. 获取拖拽后的新顺序的颜色列表
+                  const newOrderColors = newColorStops.map(stop => stop.color);
+                  
+                  // 3. 为每个按位置排序的停止点应用新顺序的颜色
+                  const finalSortedStops = sortedByPosition.map((stop, index) => {
+                    return {
+                      ...stop,
+                      // 按新顺序应用颜色，保持原位置不变
+                      color: newOrderColors[index]
+                    };
+                  });
 
-                onChange({ ...config, colorStops: finalSortedStops });
-              }}
-              onDragEnd={() => {
-                // 拖拽结束时移除所有高亮效果
-                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-              }}
-            >
-              <div style={{ textAlign: 'left'}}>
-                <div
-                  className="drag-handle"
-                  draggable={true}
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', stop.id);
-                    const target = e.target as HTMLElement;
-                    target.closest('.color-stop')?.classList.add('dragging');
-                  }}
-                  onDragEnd={(e) => {
-                    const target = e.target as HTMLElement;
-                    target.closest('.color-stop')?.classList.remove('dragging');
-                  }}
-                >
-                  ⋮⋮
+                  onChange({ ...config, colorStops: finalSortedStops });
+                }}
+                onDragEnd={() => {
+                  // 拖拽结束时移除所有高亮效果
+                  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                }}
+              >
+                <div style={{ textAlign: 'left'}}>
+                  <div
+                    className="drag-handle"
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', stop.id);
+                      const target = e.target as HTMLElement;
+                      target.closest('.color-stop')?.classList.add('dragging');
+                    }}
+                    onDragEnd={(e) => {
+                      const target = e.target as HTMLElement;
+                      target.closest('.color-stop')?.classList.remove('dragging');
+                    }}
+                  >
+                    ⋮⋮
+                  </div>
                 </div>
-              </div>
-              <div className="color-stop-input">
-                <label>颜色：</label>
-                <input
-                  type="color"
-                  value={stop.color}
-                  onChange={(e) => handleColorStopChange(stop.id, "color", e.target.value)}
-                  title={isEndpoint ? '端点颜色可调整' : '颜色可调整'}
-                />
-              </div>
-              <div className="color-stop-input">
-                <div style={{ paddingBottom: 20 }}>
-                  <label>位置：</label>
+                <div className="color-stop-input">
+                  <label>颜色：</label>
+                  <input
+                    type="color"
+                    value={stop.color}
+                    onChange={(e) => handleColorStopChange(stop.id, "color", e.target.value)}
+                    title={isEndpoint ? '端点颜色可调整' : '颜色可调整'}
+                  />
+                </div>
+                <div className="color-stop-input alpha-stop-input">
+                  <label>透明度：{Math.round((stop.alpha ?? 1) * 100)}%</label>
                   <input
                     type="range"
                     min="0"
                     max="100"
-                    value={stop.position}
-                    onChange={(e) => handleColorStopChange(stop.id, "position", parseInt(e.target.value))}
-                    title={isEndpoint ? '端点位置可调整' : '位置可调整'}
+                    value={(stop.alpha ?? 1) * 100}
+                    onChange={(e) => handleColorStopChange(stop.id, "alpha", parseInt(e.target.value) / 100)}
+                    className="alpha-slider"
                   />
                 </div>
-                <div>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={stop.position}
-                    onChange={(e) => handleColorStopChange(stop.id, "position", parseInt(e.target.value) || 0)}
-                    className="position-input"
-                    title={isEndpoint ? '端点位置可调整' : '位置可调整'}
-                  />
-                  <span>%</span>
+                <div className="color-stop-input">
+                  <div style={{ paddingBottom: 20 }}>
+                    <label>位置：</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={stop.position}
+                      onChange={(e) => handleColorStopChange(stop.id, "position", parseInt(e.target.value))}
+                      title={isEndpoint ? '端点位置可调整' : '位置可调整'}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={stop.position}
+                      onChange={(e) => handleColorStopChange(stop.id, "position", parseInt(e.target.value) || 0)}
+                      className="position-input"
+                      title={isEndpoint ? '端点位置可调整' : '位置可调整'}
+                    />
+                    <span>%</span>
+                  </div>
                 </div>
+                {config.colorStops.length > 2 && (
+                  <button
+                    className="remove-color-stop"
+                    onClick={() => handleRemoveColorStop(stop.id)}
+                  >
+                    删除
+                  </button>
+                )}
               </div>
-              {config.colorStops.length > 2 && (
-                <button
-                  className="remove-color-stop"
-                  onClick={() => handleRemoveColorStop(stop.id)}
-                >
-                  删除
-                </button>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
         <button className="add-color-stop" onClick={handleAddColorStop}>
           添加颜色停止点
         </button>
+      </div>
+
+      {/* 渐变预设 */}
+      <div className="control-group">
+        <label>渐变预设：</label>
+        <div className="preset-section">
+          {gradientPresets.map((preset, index) => (
+            <div
+              key={index}
+              className="preset-item"
+              onClick={() => handlePresetChange(index)}
+            >
+              <div
+                className="preset-preview"
+                style={{ background: generateGradientCSS({ ...config, ...preset }) }}
+              ></div>
+              <div className="preset-name">{preset.name}</div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="gradient-controls">
+          <button 
+            className="random-gradient-button"
+            onClick={handleRandomGradient}
+          >
+            🎲 随机生成渐变色
+          </button>
+        </div>
       </div>
     </div>
   );
