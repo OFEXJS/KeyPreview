@@ -39,7 +39,8 @@ const WebSocketTab: React.FC = () => {
   useEffect(() => {
     // Scroll to bottom when messages change, but only within the message history container
     if (messageHistoryRef.current) {
-      messageHistoryRef.current.scrollTop = messageHistoryRef.current.scrollHeight;
+      messageHistoryRef.current.scrollTop =
+        messageHistoryRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -118,12 +119,14 @@ const WebSocketTab: React.FC = () => {
                 className="url-input"
               />
               <button
-                  className={`connect-btn ${connected ? "connected" : ""}`}
-                  onClick={handleConnect}
-                  disabled={connecting}
-                >
-                  {connecting ? (connected ? "⏳ 断开中..." : "⏳ 连接中...") : connected ? "🔌 断开连接" : "🔗 连接"}
-                </button>
+                className={`connect-btn ${connected ? "connected" : ""}`}
+                onClick={handleConnect}
+                disabled={connecting}
+              >
+                {connected
+                  ? `${connecting ? "⏳" : "🔌"} 断开连接`
+                  : `${connecting ? "⏳" : "🔗"} 连接`}
+              </button>
             </div>
           </div>
 
