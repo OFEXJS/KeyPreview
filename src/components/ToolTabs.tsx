@@ -1,4 +1,4 @@
-type Tab = "encrypt" | "format" | "jwt" | "regex" | "keys" | "color" | "css";
+type Tab = "encrypt" | "format" | "jwt" | "regex" | "keys" | "color" | "css" | "qrcode";
 
 export default function ToolTabs({
   value,
@@ -50,6 +50,12 @@ export default function ToolTabs({
         onClick={() => onChange("css")}
       >
         🌈 渐变
+      </button>
+      <button
+        className={value === "qrcode" ? "active" : ""}
+        onClick={() => onChange("qrcode")}
+      >
+        📱 二维码
       </button>
     </div>
   );

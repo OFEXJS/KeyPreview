@@ -35,8 +35,9 @@ import { generateKeyPair } from "./modules/keys/keys";
 import KeysTab from "./tabs/KeysTab";
 import ColorTab from "./tabs/ColorTab";
 import CssTab from "./tabs/CssTab";
+import QRCodeTab from "./tabs/QRCodeTab";
 
-type TabType = "encrypt" | "format" | "jwt" | "regex" | "keys" | "color" | "css";
+type TabType = "encrypt" | "format" | "jwt" | "regex" | "keys" | "color" | "css" | "qrcode";
 type EncryptType = "base64" | "url" | "md5" | "aes";
 type FormatType = "json" | "html" | "css";
 type JwtOperation = "decode" | "encode";
@@ -527,8 +528,15 @@ function App() {
         </div>
       )}
 
+      {/* QR Code生成工具 */}
+      {activeTab === "qrcode" && (
+        <div>
+          <QRCodeTab />
+        </div>
+      )}
+
       {/* 输入输出面板 */}
-      {!["color", "css"].includes(activeTab) && (
+      {!["color", "css", "qrcode"].includes(activeTab) && (
         <TextAreaPanel
           input={inputText}
           output={outputText}
