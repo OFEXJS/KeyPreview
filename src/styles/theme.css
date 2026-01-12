@@ -138,6 +138,10 @@
   box-sizing: border-box;
 }
 
+.regex-tab-container .option-group input {
+  width: auto !important;
+}
+
 .keys-output-container textarea,
 .keys-input-container textarea:focus,
 .option-group select:focus,

@@ -81,7 +81,8 @@ const CssVisualizer: React.FC = () => {
   
   // 定义预览样式
   const previewStyle: React.CSSProperties = {
-    background: activePanel === 'gradient' ? generateGradientCSS(gradientConfig) : 'transparent',
+    backgroundColor: activePanel === 'gradient' ? undefined : 'transparent',
+    backgroundImage: activePanel === 'gradient' ? generateGradientCSS(gradientConfig) : undefined,
     backgroundClip: (previewShape === 'text' && activePanel === 'gradient') ? 'text' : 'border-box',
     WebkitBackgroundClip: (previewShape === 'text' && activePanel === 'gradient') ? 'text' : 'border-box',
     color: previewShape === 'text' 
